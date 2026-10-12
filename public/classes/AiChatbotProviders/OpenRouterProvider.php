@@ -29,8 +29,8 @@ final class OpenRouterProvider extends OpenAICompatibleProvider
     protected function headers(string $apiKey): array
     {
         $headers = parent::headers($apiKey);
-        $appUrl = trim((string)($this->config['app_url'] ?? 'https://iqs-framework.dev'));
-        $appTitle = trim((string)($this->config['app_title'] ?? 'IQS-Framework AI Chatbot'));
+        $appUrl = trim((string)($this->config['app_url'] ?? 'https://esmartcard.local'));
+        $appTitle = trim((string)($this->config['app_title'] ?? 'e-SmartCard AI Chatbot'));
         if ($appUrl !== '') {
             $headers[] = 'HTTP-Referer: ' . $appUrl;
         }

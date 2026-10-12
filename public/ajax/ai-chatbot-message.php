@@ -186,7 +186,7 @@ try {
         'is_super_admin' => function_exists('is_user_super_admin') ? is_user_super_admin($profile, $pdo) : false,
         'is_privileged_project_admin' => $isPrivilegedProjectAdmin,
         'access_mode' => (string)($publicConfig['access_mode'] ?? ''),
-        'app_title' => (string)($publicConfig['app_title'] ?? 'IQS-Framework AI Chatbot'),
+        'app_title' => (string)($publicConfig['app_title'] ?? 'e-SmartCard AI Chatbot'),
         'current_page_path' => $pagePath,
         'current_page_title' => $pageTitle,
         'current_page_ui' => $pageUiContext,

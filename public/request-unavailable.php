@@ -18,8 +18,8 @@ $redirectUrl = function_exists('base_url')
     : '/' . ltrim($redirectPath, '/');
 
 $systemName = trim((string)(function_exists('app_config')
-    ? app_config('system.name', 'IQS Framework')
-    : 'IQS Framework'));
+    ? app_config('system.name', 'e-SmartCard')
+    : 'e-SmartCard'));
 $siteTitle = trim((string)(function_exists('app_config')
     ? app_config('site.title', $systemName)
     : $systemName));

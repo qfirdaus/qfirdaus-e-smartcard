@@ -42,13 +42,13 @@ final class AiChatbotService
             'persist_usage' => true,
             'store_conversations' => false,
             'log_message_content' => false,
-            'character_name' => 'IQS Assistant',
+            'character_name' => 'e-SmartCard Assistant',
             'character_avatar' => 'assets/images/ai/assistant.png',
             'welcome_message' => 'Hai, saya boleh bantu tentang penggunaan sistem ini.',
             'access_mode' => 'super_admin_only',
             'allowed_groups' => '',
-            'app_url' => 'https://iqs-framework.dev',
-            'app_title' => 'IQS-Framework AI Chatbot',
+            'app_url' => 'https://esmartcard.local',
+            'app_title' => 'e-SmartCard AI Chatbot',
         ];
 
         foreach (self::loadDbConfigOverrides() as $key => $value) {
@@ -246,8 +246,8 @@ final class AiChatbotService
         $classification = is_array($actor['question_classification'] ?? null) ? $actor['question_classification'] : [];
 
         $parts = [
-            'You are the IQS-Framework internal assistant.',
-            'Your scope is limited to helping users understand and use the current IQS-Framework system.',
+            'You are the e-SmartCard internal assistant.',
+            'Your scope is limited to helping users understand and use the current e-SmartCard system.',
             'Answer in the user language where possible. If the user writes Malay, answer in Malay.',
             'Be concise, practical, and honest.',
             'If the user asks about topics unrelated to this system, politely say that you can only help with this system.',

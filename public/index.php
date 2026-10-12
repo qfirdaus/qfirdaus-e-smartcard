@@ -262,8 +262,8 @@ $defaultHome      = app_config('site.default_home', 'pages/dashboard.php');
 $loginHeaderLogo  = $normalizeLocalAssetPath(app_config('branding.login_header_logo', 'assets/images/logo-upnm.png'), 'assets/images/logo-upnm.png');
 $loginPanelLogo   = $normalizeLocalAssetPath(app_config('branding.login_panel_logo', 'assets/images/upnm30-logo.png'), 'assets/images/upnm30-logo.png');
 $supportEmail     = $normalizeEmail(app_config('system.support', ''));
-$systemName       = trim((string)app_config('system.name', 'IQS Framework'));
-$organizationName = trim((string)app_config('organization.name', app_config('system.name', 'IQS Framework')));
+$systemName       = trim((string)app_config('system.name', 'e-SmartCard'));
+$organizationName = trim((string)app_config('organization.name', app_config('system.name', 'e-SmartCard')));
 $organizationWebsite = $normalizeExternalUrl(app_config('organization.website', ''));
 $faviconPath = $normalizeLocalAssetPath(app_config('site.favicon', 'assets/images/default.ico'), 'assets/images/default.ico');
 $loginBannerImages = ['banner1.jpg', 'banner2.jpg', 'banner3.jpg', 'banner4.jpg'];
@@ -283,7 +283,7 @@ if ($organizationWebsite !== '' && $organizationWebsite !== '#') {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title><?= __('login_title') ?> | <?= htmlspecialchars(app_config('site.title', 'IQS Framework')) ?></title>
+  <title><?= __('login_title') ?> | <?= htmlspecialchars(app_config('site.title', 'e-SmartCard')) ?></title>
   <link rel="icon" href="<?= base_url($faviconPath) ?>" type="image/x-icon">
 
   <link rel="stylesheet" href="<?= base_url('assets/css/icons.min.css?v=' . $version) ?>">
@@ -1044,7 +1044,7 @@ if ($organizationWebsite !== '' && $organizationWebsite !== '#') {
       <div class="facility-brand-lockup">
         <img class="facility-brand-mark" src="<?= base_url($loginHeaderLogo) ?>" alt="UPNM Logo">
         <div class="facility-brand-meta">
-          <strong><?= htmlspecialchars($systemName !== '' ? $systemName : 'IQS Framework', ENT_QUOTES, 'UTF-8') ?></strong>
+          <strong><?= htmlspecialchars($systemName !== '' ? $systemName : 'e-SmartCard', ENT_QUOTES, 'UTF-8') ?></strong>
           <span><?= htmlspecialchars($organizationName !== '' ? $organizationName : ($lang === 'en' ? 'Reusable core platform for building future systems with the same governance, security, and application foundation.' : 'Platform teras boleh guna semula untuk membina sistem-sistem akan datang dengan tadbir urus, keselamatan, dan asas aplikasi yang sama.'), ENT_QUOTES, 'UTF-8') ?></span>
         </div>
       </div>
@@ -1077,8 +1077,8 @@ if ($organizationWebsite !== '' && $organizationWebsite !== '#') {
             <div class="facility-visual-content">
               <div class="facility-visual-body">
                 <div class="facility-visual-copy">
-                  <h2><?= htmlspecialchars($lang === 'en' ? 'One core framework for consistent governance across every future system.' : 'Satu framework teras untuk tadbir urus yang konsisten merentas setiap sistem akan datang.', ENT_QUOTES, 'UTF-8') ?></h2>
-                  <p><?= htmlspecialchars($lang === 'en' ? 'IQS Framework is developed as the shared base so teams can move straight into business features while common capabilities stay standardized.' : 'IQS Framework dibangunkan sebagai asas bersama supaya pasukan boleh terus fokus pada ciri kerja sebenar sementara keupayaan umum kekal standard.', ENT_QUOTES, 'UTF-8') ?></p>
+                  <h2><?= htmlspecialchars($lang === 'en' ? 'A smarter, integrated platform for UPNM card services.' : 'Platform pintar dan bersepadu untuk perkhidmatan kad UPNM.', ENT_QUOTES, 'UTF-8') ?></h2>
+                  <p><?= htmlspecialchars($lang === 'en' ? 'e-SmartCard centralizes smart card services in a secure and consistent digital workspace.' : 'e-SmartCard memusatkan perkhidmatan kad pintar dalam ruang kerja digital yang selamat dan konsisten.', ENT_QUOTES, 'UTF-8') ?></p>
                 </div>
               </div>
             </div>
@@ -1088,13 +1088,13 @@ if ($organizationWebsite !== '' && $organizationWebsite !== '#') {
         <div class="facility-info-grid">
           <article class="facility-info-card">
             <span class="facility-card-label"><i class="ri-layout-masonry-line"></i> <?= $lang === 'en' ? 'Platform' : 'Platform' ?></span>
-            <h3><?= htmlspecialchars($systemName !== '' ? $systemName : 'IQS Framework', ENT_QUOTES, 'UTF-8') ?></h3>
-            <p><?= htmlspecialchars($lang === 'en' ? 'Built as the core project layer that provides shared modules, conventions, and reusable flows for major application development.' : 'Dibina sebagai lapisan projek teras yang menyediakan modul bersama, konvensyen, dan aliran boleh guna semula untuk pembangunan aplikasi utama.', ENT_QUOTES, 'UTF-8') ?></p>
+            <h3><?= htmlspecialchars($systemName !== '' ? $systemName : 'e-SmartCard', ENT_QUOTES, 'UTF-8') ?></h3>
+            <p><?= htmlspecialchars($lang === 'en' ? 'Manage UPNM smart card services through a centralized and governed application.' : 'Urus perkhidmatan kad pintar UPNM melalui aplikasi yang berpusat dan terkawal.', ENT_QUOTES, 'UTF-8') ?></p>
           </article>
 
           <article class="facility-info-card">
             <span class="facility-card-label"><i class="ri-customer-service-2-line"></i> <?= __('login_contact_title') ?></span>
-            <h3><?= htmlspecialchars($lang === 'en' ? 'Support and framework reference' : 'Sokongan dan rujukan framework', ENT_QUOTES, 'UTF-8') ?></h3>
+            <h3><?= htmlspecialchars($lang === 'en' ? 'e-SmartCard support' : 'Sokongan e-SmartCard', ENT_QUOTES, 'UTF-8') ?></h3>
             <p>
               <?php if (!empty($contactParts)): ?>
                 <?= implode('<br>', $contactParts) ?>
@@ -1121,7 +1121,7 @@ if ($organizationWebsite !== '' && $organizationWebsite !== '#') {
             <div>
               <span class="facility-eyebrow"><i class="ri-login-circle-line"></i> <?= __('login_heading') ?></span>
               <h2 class="facility-form-title"><?= __('login_title') ?></h2>
-              <p class="facility-form-subcopy"><?= htmlspecialchars($lang === 'en' ? 'Enter your credentials to access the IQS Framework core workspace and continue to shared platform services.' : 'Masukkan kelayakan anda untuk mengakses ruang kerja teras IQS Framework dan meneruskan ke perkhidmatan platform bersama.', ENT_QUOTES, 'UTF-8') ?></p>
+              <p class="facility-form-subcopy"><?= htmlspecialchars($lang === 'en' ? 'Enter your credentials to access e-SmartCard services.' : 'Masukkan kelayakan anda untuk mengakses perkhidmatan e-SmartCard.', ENT_QUOTES, 'UTF-8') ?></p>
             </div>
           </div>
 

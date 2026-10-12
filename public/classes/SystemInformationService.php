@@ -248,11 +248,11 @@ final class SystemInformationService
     private function buildConfiguration(): array
     {
         $definitions = [
-            ['System Name', 'system.name', 'IQS Framework'],
+            ['System Name', 'system.name', 'e-SmartCard'],
             ['System Version', 'system.version', $this->frameworkVersion()],
             ['Application Environment', null, $this->environmentLabel()],
             ['Default Language', null, (string)($_SESSION['lang'] ?? 'ms')],
-            ['Site Title', 'site.title', 'IQS Framework'],
+            ['Site Title', 'site.title', 'e-SmartCard'],
             ['Default Home Route', 'site.default_home', 'pages/dashboard.php'],
             ['Support Email', 'system.support', 'Not configured'],
             ['Session Idle Timeout', 'session.idle_timeout_minutes', '30'],

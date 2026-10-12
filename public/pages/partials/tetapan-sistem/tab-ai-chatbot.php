@@ -304,11 +304,11 @@ $aiProviderDefaults = [
                 </div>
                 <div class="col-md-6">
                   <label class="form-label fw-semibold" for="ai_chatbot_app_url"><?= htmlspecialchars($aiText('config_ai_chatbot_app_url', 'App URL'), ENT_QUOTES, 'UTF-8') ?></label>
-                  <input type="url" class="form-control" id="ai_chatbot_app_url" name="ai_chatbot_app_url" value="<?= $aiValue('app_url', 'https://iqs-framework.dev') ?>">
+                  <input type="url" class="form-control" id="ai_chatbot_app_url" name="ai_chatbot_app_url" value="<?= $aiValue('app_url', 'https://esmartcard.local') ?>">
                 </div>
                 <div class="col-md-6">
                   <label class="form-label fw-semibold" for="ai_chatbot_app_title"><?= htmlspecialchars($aiText('config_ai_chatbot_app_title', 'App title'), ENT_QUOTES, 'UTF-8') ?></label>
-                  <input type="text" class="form-control" id="ai_chatbot_app_title" name="ai_chatbot_app_title" value="<?= $aiValue('app_title', 'IQS-Framework AI Chatbot') ?>">
+                  <input type="text" class="form-control" id="ai_chatbot_app_title" name="ai_chatbot_app_title" value="<?= $aiValue('app_title', 'e-SmartCard AI Chatbot') ?>">
                 </div>
               </div>
             </div>
