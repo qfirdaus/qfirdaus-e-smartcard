@@ -1,0 +1,14 @@
+{
+  "template_key": "detail-view",
+  "template_version": 1,
+  "baseline_reference": [
+    "public/pages/dashboard.php",
+    "public/pages/template-generator.php",
+    "public/pages/senarai-pengguna.php"
+  ],
+  "notes": [
+    "Guna page detail standalone dengan summary card dan grouped information sections.",
+    "Sesuai untuk page view-only seperti profile detail, transaction detail, atau audit detail.",
+    "Controller sample mengandungi data contoh yang boleh diganti oleh developer kemudian."
+  ]
+}

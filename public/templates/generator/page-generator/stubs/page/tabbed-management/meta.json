@@ -1,0 +1,14 @@
+{
+  "key": "tabbed-management",
+  "label": "Tabbed Management Page",
+  "description": "Generic tabbed management page inspired by senarai-pengguna with overview, configuration, and history sections.",
+  "version": 1,
+  "baseline_reference": [
+    "public/pages/senarai-pengguna.php"
+  ],
+  "outputs": [
+    "page",
+    "controller",
+    "css"
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "template_key": "datatable-crud-modal",
+  "template_version": 1,
+  "baseline_reference": [
+    "public/pages/manage-manuals.php",
+    "public/pages/senarai-pengguna.php"
+  ],
+  "notes": [
+    "Guna DataTable shell standard dengan modals Add, Edit, dan View.",
+    "Ikut standard modal e-Base: add hijau, edit biru, view kuning.",
+    "Delete kekal sebagai sample SweetAlert flow tanpa integrasi backend."
+  ]
+}

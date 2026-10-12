@@ -1,0 +1,13 @@
+{
+  "template_key": "datatable-expandable-row",
+  "template_version": 1,
+  "baseline_reference": [
+    "public/pages/manage-manuals.php",
+    "public/pages/senarai-pengguna.php"
+  ],
+  "notes": [
+    "Guna DataTable dengan expandable detail row terus di bawah row yang dipilih.",
+    "Sesuai untuk detail ringkas yang tidak memerlukan page atau panel detail berasingan.",
+    "Interaction sample dikendalikan di frontend tanpa backend tambahan."
+  ]
+}

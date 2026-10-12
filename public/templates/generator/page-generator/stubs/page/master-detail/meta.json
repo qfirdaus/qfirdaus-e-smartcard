@@ -1,0 +1,13 @@
+{
+  "template_key": "master-detail",
+  "template_version": 1,
+  "baseline_reference": [
+    "public/pages/template-generator.php",
+    "public/pages/dashboard.php"
+  ],
+  "notes": [
+    "Gunakan page tunggal dengan panel master di atas atau kiri dan panel detail berasingan.",
+    "Sesuai untuk access matrix, mapping page, configuration list, dan admin tools.",
+    "Interaction sample dikendalikan di frontend tanpa backend tambahan."
+  ]
+}

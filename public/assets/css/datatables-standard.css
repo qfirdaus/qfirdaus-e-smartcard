@@ -1,0 +1,352 @@
+/* =========================================================
+   Standard DataTables Preset
+   Official preset based on kumpulan-pengguna.php
+   ========================================================= */
+
+.table-responsive.dt-standard,
+.dt-standard-shell {
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 8px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.04);
+}
+
+.table-responsive.dt-standard .table,
+.dt-standard-shell .table {
+  margin-bottom: 0;
+}
+
+.dt-standard table.dataTable,
+.dataTables_wrapper.dt-standard table.dataTable {
+  width: 100% !important;
+  margin: 0 !important;
+  border-collapse: collapse !important;
+}
+
+.dt-standard table.dataTable thead th,
+.dataTables_wrapper.dt-standard table.dataTable thead th {
+  background: linear-gradient(180deg, rgba(248, 250, 252, 0.96), rgba(241, 245, 249, 0.92));
+  border: 0;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.16) !important;
+  color: #475569;
+  font-size: 0.78rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0.9rem 0.85rem !important;
+  vertical-align: middle !important;
+  white-space: nowrap;
+}
+
+.dt-standard table.dataTable tbody tr,
+.dataTables_wrapper.dt-standard table.dataTable tbody tr,
+.dt-standard table.dataTable tbody tr:nth-of-type(odd),
+.dt-standard table.dataTable tbody tr:nth-of-type(even),
+.dataTables_wrapper.dt-standard table.dataTable tbody tr:nth-of-type(odd),
+.dataTables_wrapper.dt-standard table.dataTable tbody tr:nth-of-type(even) {
+  background: transparent !important;
+  transition: background-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.dt-standard table.dataTable tbody td,
+.dataTables_wrapper.dt-standard table.dataTable tbody td {
+  padding: 0.62rem 0.78rem !important;
+  border-top-color: rgba(226, 232, 240, 0.9) !important;
+  color: inherit;
+  font-size: 0.88rem !important;
+  line-height: 1.28;
+  vertical-align: middle !important;
+  background: transparent !important;
+}
+
+.dt-standard table.dataTable tbody tr:hover,
+.dataTables_wrapper.dt-standard table.dataTable tbody tr:hover {
+  background: rgba(241, 245, 249, 0.88) !important;
+}
+
+.dt-standard table.dataTable tbody tr:hover > td,
+.dataTables_wrapper.dt-standard table.dataTable tbody tr:hover > td {
+  background: rgba(241, 245, 249, 0.3) !important;
+  box-shadow: inset 0 0 0 999px rgba(241, 245, 249, 0.3);
+}
+
+.dt-standard .dataTables_wrapper,
+.dataTables_wrapper.dt-standard {
+  width: 100%;
+}
+
+.dt-standard .dataTables_wrapper .row,
+.dataTables_wrapper.dt-standard .row {
+  margin-left: -0.75rem;
+  margin-right: -0.75rem;
+  max-width: 100%;
+}
+
+.dt-standard .dataTables_wrapper .row > [class*="col-"],
+.dataTables_wrapper.dt-standard .row > [class*="col-"] {
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+  max-width: 100%;
+}
+
+.dt-standard .dataTables_wrapper .row.mb-2 > .dt-top-left,
+.dataTables_wrapper.dt-standard .row.mb-2 > .dt-top-left,
+.dt-standard .dataTables_wrapper .dt-top-left,
+.dataTables_wrapper.dt-standard .dt-top-left {
+  padding-left: 1.55rem !important;
+  position: relative;
+  top: 7px;
+}
+
+.dt-standard .dataTables_wrapper .dataTables_length,
+.dt-standard .dataTables_wrapper .dataTables_filter,
+.dataTables_wrapper.dt-standard .dataTables_length,
+.dataTables_wrapper.dt-standard .dataTables_filter {
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.dt-standard .dataTables_wrapper .dataTables_length label,
+.dt-standard .dataTables_wrapper .dataTables_filter label,
+.dataTables_wrapper.dt-standard .dataTables_length label,
+.dataTables_wrapper.dt-standard .dataTables_filter label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0;
+  font-size: 0.88rem;
+  color: #475569;
+}
+
+.dt-standard .dataTables_wrapper .dataTables_length select,
+.dt-standard .dataTables_wrapper .dataTables_filter input,
+.dataTables_wrapper.dt-standard .dataTables_length select,
+.dataTables_wrapper.dt-standard .dataTables_filter input {
+  width: auto;
+  min-width: 70px;
+  height: 38px !important;
+  min-height: 38px !important;
+  border-radius: 8px !important;
+  border: 1px solid rgba(148, 163, 184, 0.24) !important;
+  background: rgba(255, 255, 255, 0.98) !important;
+  box-shadow: none !important;
+  padding: 0.5rem 0.75rem !important;
+  font-size: 0.88rem !important;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
+}
+
+.dt-standard .dataTables_wrapper .dataTables_filter,
+.dataTables_wrapper.dt-standard .dataTables_filter {
+  text-align: right;
+  margin-left: auto;
+  justify-content: flex-end;
+}
+
+.dt-standard .dataTables_wrapper .dt-top-right,
+.dt-standard .dataTables_wrapper .dt-top-right .dataTables_filter,
+.dt-standard .dataTables_wrapper .dt-top-right .dataTables_filter label,
+.dataTables_wrapper.dt-standard .dt-top-right,
+.dataTables_wrapper.dt-standard .dt-top-right .dataTables_filter,
+.dataTables_wrapper.dt-standard .dt-top-right .dataTables_filter label {
+  align-items: center !important;
+}
+
+.dt-standard .dataTables_wrapper .dt-top-right .dataTables_filter,
+.dataTables_wrapper.dt-standard .dt-top-right .dataTables_filter {
+  display: flex !important;
+  margin-bottom: 0 !important;
+}
+
+.dt-standard .dataTables_wrapper .dataTables_filter input,
+.dataTables_wrapper.dt-standard .dataTables_filter input {
+  min-width: 180px;
+  max-width: 100%;
+}
+
+.dt-standard .dataTables_wrapper .dataTables_length select:focus,
+.dt-standard .dataTables_wrapper .dataTables_filter input:focus,
+.dataTables_wrapper.dt-standard .dataTables_length select:focus,
+.dataTables_wrapper.dt-standard .dataTables_filter input:focus {
+  border-color: rgba(59, 130, 246, 0.45) !important;
+  box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.14), 0 12px 24px rgba(15, 23, 42, 0.06) !important;
+  outline: none !important;
+}
+
+.dt-standard .dataTables_wrapper .dataTables_info,
+.dataTables_wrapper.dt-standard .dataTables_info {
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+  font-size: 0.88rem;
+  color: #64748b;
+  padding-top: 0;
+  text-align: left;
+  justify-content: flex-start;
+}
+
+.dt-standard .dataTables_wrapper .dt-bottom-row,
+.dataTables_wrapper.dt-standard .dt-bottom-row {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  flex-wrap: nowrap !important;
+  width: 100%;
+  gap: 0.5rem !important;
+  margin-top: 0 !important;
+  padding-top: 0.15rem !important;
+}
+
+.dt-standard .dataTables_wrapper .dt-bottom-row > .dt-info-left,
+.dataTables_wrapper.dt-standard .dt-bottom-row > .dt-info-left {
+  padding-left: 1.2rem !important;
+  margin-left: 0 !important;
+  flex: 0 1 auto !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+  display: flex !important;
+  justify-content: flex-start !important;
+  align-items: center !important;
+  text-align: left !important;
+  margin-right: auto !important;
+}
+
+.dt-standard .dataTables_wrapper .dt-bottom-row > .dt-info-left .dataTables_info,
+.dataTables_wrapper.dt-standard .dt-bottom-row > .dt-info-left .dataTables_info {
+  padding-left: 0 !important;
+  margin-left: 0 !important;
+}
+
+.dt-standard .dataTables_wrapper .dataTables_paginate,
+.dataTables_wrapper.dt-standard .dataTables_paginate {
+  margin-left: auto;
+  text-align: right;
+  margin-top: 0 !important;
+  white-space: nowrap !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+}
+
+.dt-standard .dataTables_wrapper .dt-bottom-row > .dt-paging-right,
+.dataTables_wrapper.dt-standard .dt-bottom-row > .dt-paging-right {
+  flex: 0 0 auto !important;
+  margin-left: auto !important;
+  display: flex !important;
+  justify-content: flex-end !important;
+  align-items: center !important;
+  position: relative !important;
+  top: -7px !important;
+}
+
+.dt-standard .dataTables_wrapper .dataTables_paginate .pagination,
+.dataTables_wrapper.dt-standard .dataTables_paginate .pagination {
+  justify-content: flex-end;
+  margin-bottom: 0;
+  flex-wrap: nowrap;
+  gap: 0.15rem;
+}
+
+.dt-standard .dataTables_wrapper .paginate_button .page-link,
+.dataTables_wrapper.dt-standard .paginate_button .page-link {
+  border-radius: 8px !important;
+  min-width: 2.2rem;
+}
+
+.dt-standard .dataTables_wrapper table.dataTable tbody td.dataTables_empty,
+.dataTables_wrapper.dt-standard table.dataTable tbody td.dataTables_empty {
+  padding: 1.25rem 1rem !important;
+  color: #64748b;
+  text-align: center;
+  background: rgba(248, 250, 252, 0.72) !important;
+}
+
+@media (max-width: 767.98px) {
+  .dt-standard .dataTables_wrapper .dt-bottom-row,
+  .dataTables_wrapper.dt-standard .dt-bottom-row {
+    flex-wrap: wrap !important;
+  }
+  .dt-standard .dataTables_wrapper .dataTables_length,
+  .dt-standard .dataTables_wrapper .dataTables_filter,
+  .dataTables_wrapper.dt-standard .dataTables_length,
+  .dataTables_wrapper.dt-standard .dataTables_filter {
+    margin-bottom: 0.75rem;
+  }
+
+  .dt-standard .dataTables_wrapper .dataTables_filter,
+  .dataTables_wrapper.dt-standard .dataTables_filter {
+    margin-left: 0;
+    text-align: left;
+    justify-content: flex-start;
+  }
+
+  .dt-standard .dataTables_wrapper .dataTables_info,
+  .dt-standard .dataTables_wrapper .dataTables_paginate,
+  .dataTables_wrapper.dt-standard .dataTables_info,
+  .dataTables_wrapper.dt-standard .dataTables_paginate {
+    margin-top: 0.5rem;
+    text-align: center;
+    justify-content: center;
+  }
+  .dt-standard .dataTables_wrapper .dt-top-left,
+  .dataTables_wrapper.dt-standard .dt-top-left,
+  .dt-standard .dataTables_wrapper .dt-bottom-row > .dt-paging-right,
+  .dataTables_wrapper.dt-standard .dt-bottom-row > .dt-paging-right {
+    top: 0 !important;
+  }
+}
+
+html[data-bs-theme="dark"] .table-responsive.dt-standard,
+html[data-bs-theme="dark"] .dt-standard-shell {
+  background: rgba(15, 23, 42, 0.94);
+  border-color: rgba(148, 163, 184, 0.16);
+  box-shadow: 0 16px 34px rgba(2, 6, 23, 0.2);
+}
+
+html[data-bs-theme="dark"] .dt-standard table.dataTable thead th,
+html[data-bs-theme="dark"] .dataTables_wrapper.dt-standard table.dataTable thead th {
+  background: linear-gradient(180deg, rgba(30, 41, 59, 0.96), rgba(15, 23, 42, 0.94));
+  color: #dbe4f0;
+  border-bottom-color: rgba(148, 163, 184, 0.18) !important;
+}
+
+html[data-bs-theme="dark"] .dt-standard table.dataTable tbody td,
+html[data-bs-theme="dark"] .dataTables_wrapper.dt-standard table.dataTable tbody td {
+  border-top-color: rgba(51, 65, 85, 0.95) !important;
+}
+
+html[data-bs-theme="dark"] .dt-standard table.dataTable tbody tr:hover,
+html[data-bs-theme="dark"] .dataTables_wrapper.dt-standard table.dataTable tbody tr:hover {
+  background: rgba(30, 41, 59, 0.76) !important;
+}
+
+html[data-bs-theme="dark"] .dt-standard table.dataTable tbody tr:hover > td,
+html[data-bs-theme="dark"] .dataTables_wrapper.dt-standard table.dataTable tbody tr:hover > td {
+  background: rgba(30, 41, 59, 0.18) !important;
+  box-shadow: inset 0 0 0 999px rgba(30, 41, 59, 0.18);
+}
+
+html[data-bs-theme="dark"] .dt-standard .dataTables_wrapper .dataTables_length label,
+html[data-bs-theme="dark"] .dt-standard .dataTables_wrapper .dataTables_filter label,
+html[data-bs-theme="dark"] .dt-standard .dataTables_wrapper .dataTables_info,
+html[data-bs-theme="dark"] .dataTables_wrapper.dt-standard .dataTables_length label,
+html[data-bs-theme="dark"] .dataTables_wrapper.dt-standard .dataTables_filter label,
+html[data-bs-theme="dark"] .dataTables_wrapper.dt-standard .dataTables_info {
+  color: #cbd5e1;
+}
+
+html[data-bs-theme="dark"] .dt-standard .dataTables_wrapper .dataTables_length select,
+html[data-bs-theme="dark"] .dt-standard .dataTables_wrapper .dataTables_filter input,
+html[data-bs-theme="dark"] .dataTables_wrapper.dt-standard .dataTables_length select,
+html[data-bs-theme="dark"] .dataTables_wrapper.dt-standard .dataTables_filter input {
+  background: rgba(15, 23, 42, 0.96) !important;
+  border-color: rgba(148, 163, 184, 0.24) !important;
+  color: #e2e8f0 !important;
+}
+
+html[data-bs-theme="dark"] .dt-standard .dataTables_wrapper table.dataTable tbody td.dataTables_empty,
+html[data-bs-theme="dark"] .dataTables_wrapper.dt-standard table.dataTable tbody td.dataTables_empty {
+  background: rgba(15, 23, 42, 0.9) !important;
+  color: #94a3b8;
+}

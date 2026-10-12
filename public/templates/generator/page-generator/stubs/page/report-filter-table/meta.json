@@ -1,0 +1,13 @@
+{
+  "template_key": "report-filter-table",
+  "template_version": 1,
+  "baseline_reference": [
+    "public/pages/manage-manuals.php",
+    "public/pages/dashboard.php"
+  ],
+  "notes": [
+    "Gunakan page tunggal dengan blok filter di atas dan jadual keputusan di bawah.",
+    "Sesuai untuk report page, semakan rekod, dan search result layout.",
+    "Filter action adalah sample frontend dan tidak bergantung pada backend."
+  ]
+}

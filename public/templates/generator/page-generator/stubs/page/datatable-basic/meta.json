@@ -1,0 +1,13 @@
+{
+  "template_key": "datatable-basic",
+  "template_version": 1,
+  "baseline_reference": [
+    "public/pages/manage-manuals.php",
+    "public/pages/senarai-pengguna.php"
+  ],
+  "notes": [
+    "Guna shell DataTable yang kemas dan professional tanpa modal CRUD.",
+    "Sesuai untuk page listing, report list, atau lookup list yang read-only.",
+    "Kekalkan search, pagination, status badge, dan sample rows sahaja."
+  ]
+}

@@ -1,0 +1,22 @@
+CREATE TABLE IF NOT EXISTS `tbl_ai_chat_knowledge` (
+  `f_aiChatKnowledgeID` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `f_publicID` CHAR(36) NOT NULL,
+  `f_title` VARCHAR(255) NOT NULL,
+  `f_question` VARCHAR(500) NULL DEFAULT NULL,
+  `f_answer` MEDIUMTEXT NOT NULL,
+  `f_language` VARCHAR(10) NOT NULL DEFAULT 'ms',
+  `f_visibility` ENUM('all_authenticated','selected_groups','super_admin_only') NOT NULL DEFAULT 'selected_groups',
+  `f_allowedGroups` VARCHAR(500) NULL DEFAULT NULL,
+  `f_tags` VARCHAR(500) NULL DEFAULT NULL,
+  `f_status` ENUM('draft','active','archived') NOT NULL DEFAULT 'active',
+  `f_priority` INT NOT NULL DEFAULT 100,
+  `f_createdBy` VARCHAR(191) NULL DEFAULT NULL,
+  `f_createdDt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `f_updatedBy` VARCHAR(191) NULL DEFAULT NULL,
+  `f_updatedDt` DATETIME NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`f_aiChatKnowledgeID`),
+  UNIQUE KEY `uk_ai_chat_knowledge_public_id` (`f_publicID`),
+  KEY `idx_ai_chat_knowledge_status_lang_priority` (`f_status`, `f_language`, `f_priority`),
+  KEY `idx_ai_chat_knowledge_visibility_status` (`f_visibility`, `f_status`),
+  KEY `idx_ai_chat_knowledge_created` (`f_createdDt`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

@@ -1,0 +1,139 @@
+{
+  "templates": [
+    {
+      "key": "blank",
+      "label": "Blank Page",
+      "description": "Page asas dengan title, breadcrumb, dan content shell.",
+      "version": 1,
+      "page_stub": "stubs/page/blank/page.stub.php",
+      "controller_stub": "stubs/page/blank/controller.stub.php",
+      "css_stub": "stubs/page/blank/page.stub.css",
+      "meta_stub": "stubs/page/blank/meta.json",
+      "outputs": [
+        "page",
+        "controller",
+        "css"
+      ]
+    },
+    {
+      "key": "datatable-basic",
+      "label": "DataTable Basic",
+      "description": "Professional list-only page with a standard DataTable layout, search, and pagination.",
+      "version": 1,
+      "page_stub": "stubs/page/datatable-basic/page.stub.php",
+      "controller_stub": "stubs/page/datatable-basic/controller.stub.php",
+      "css_stub": "stubs/page/datatable-basic/page.stub.css",
+      "meta_stub": "stubs/page/datatable-basic/meta.json",
+      "outputs": [
+        "page",
+        "controller",
+        "css"
+      ]
+    },
+    {
+      "key": "datatable-crud-modal",
+      "label": "DataTable + CRUD Modal",
+      "description": "Listing page with standard DataTable shell, add/edit/view modals, and sample delete flow.",
+      "version": 1,
+      "page_stub": "stubs/page/datatable-crud-modal/page.stub.php",
+      "controller_stub": "stubs/page/datatable-crud-modal/controller.stub.php",
+      "css_stub": "stubs/page/datatable-crud-modal/page.stub.css",
+      "meta_stub": "stubs/page/datatable-crud-modal/meta.json",
+      "outputs": [
+        "page",
+        "controller",
+        "css"
+      ]
+    },
+    {
+      "key": "form-basic",
+      "label": "Basic Form Page",
+      "description": "Standard single-page form with page header, card section, and save/cancel actions.",
+      "version": 1,
+      "page_stub": "stubs/page/form-basic/page.stub.php",
+      "controller_stub": "stubs/page/form-basic/controller.stub.php",
+      "css_stub": "stubs/page/form-basic/page.stub.css",
+      "meta_stub": "stubs/page/form-basic/meta.json",
+      "outputs": [
+        "page",
+        "controller",
+        "css"
+      ]
+    },
+    {
+      "key": "report-filter-table",
+      "label": "Report + Filter Table",
+      "description": "Single-page report layout with filter controls at the top and a result table below.",
+      "version": 1,
+      "page_stub": "stubs/page/report-filter-table/page.stub.php",
+      "controller_stub": "stubs/page/report-filter-table/controller.stub.php",
+      "css_stub": "stubs/page/report-filter-table/page.stub.css",
+      "meta_stub": "stubs/page/report-filter-table/meta.json",
+      "outputs": [
+        "page",
+        "controller",
+        "css"
+      ]
+    },
+    {
+      "key": "detail-view",
+      "label": "Detail View Page",
+      "description": "Standalone read-only detail page with summary card and grouped information sections.",
+      "version": 1,
+      "page_stub": "stubs/page/detail-view/page.stub.php",
+      "controller_stub": "stubs/page/detail-view/controller.stub.php",
+      "css_stub": "stubs/page/detail-view/page.stub.css",
+      "meta_stub": "stubs/page/detail-view/meta.json",
+      "outputs": [
+        "page",
+        "controller",
+        "css"
+      ]
+    },
+    {
+      "key": "master-detail",
+      "label": "Master Detail Page",
+      "description": "Single-page layout with a master list and detail panel that updates based on the selected record.",
+      "version": 1,
+      "page_stub": "stubs/page/master-detail/page.stub.php",
+      "controller_stub": "stubs/page/master-detail/controller.stub.php",
+      "css_stub": "stubs/page/master-detail/page.stub.css",
+      "meta_stub": "stubs/page/master-detail/meta.json",
+      "outputs": [
+        "page",
+        "controller",
+        "css"
+      ]
+    },
+    {
+      "key": "datatable-expandable-row",
+      "label": "DataTable Expandable Row",
+      "description": "DataTable page with inline expandable detail rows and sample data interaction.",
+      "version": 1,
+      "page_stub": "stubs/page/datatable-expandable-row/page.stub.php",
+      "controller_stub": "stubs/page/datatable-expandable-row/controller.stub.php",
+      "css_stub": "stubs/page/datatable-expandable-row/page.stub.css",
+      "meta_stub": "stubs/page/datatable-expandable-row/meta.json",
+      "outputs": [
+        "page",
+        "controller",
+        "css"
+      ]
+    },
+    {
+      "key": "tabbed-management",
+      "label": "Tabbed Management Page",
+      "description": "Single-page management layout with polished tab navigation, mixed content panels, and sample tab interactions.",
+      "version": 1,
+      "page_stub": "stubs/page/tabbed-management/page.stub.php",
+      "controller_stub": "stubs/page/tabbed-management/controller.stub.php",
+      "css_stub": "stubs/page/tabbed-management/page.stub.css",
+      "meta_stub": "stubs/page/tabbed-management/meta.json",
+      "outputs": [
+        "page",
+        "controller",
+        "css"
+      ]
+    }
+  ]
+}

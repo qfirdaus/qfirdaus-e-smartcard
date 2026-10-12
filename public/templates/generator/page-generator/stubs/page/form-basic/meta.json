@@ -1,0 +1,14 @@
+{
+  "template_key": "form-basic",
+  "template_version": 1,
+  "baseline_reference": [
+    "public/pages/tetapan-sistem.php",
+    "public/pages/dashboard.php",
+    "public/pages/senarai-pengguna.php"
+  ],
+  "notes": [
+    "Guna shell page standard e-Base dengan satu form card utama.",
+    "Ambil feel page shell daripada dashboard dan treatment form/modal daripada senarai-pengguna.",
+    "Sesuai untuk create/edit master data ringkas atau page tetapan modul."
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "template_key": "blank",
+  "template_version": 1,
+  "baseline_reference": "public/pages/dashboard.php",
+  "notes": [
+    "Guna shell page standard e-Base.",
+    "Ambil title header dan breadcrumb sahaja daripada dashboard.",
+    "Jangan bawa widget atau dashboard-specific logic."
+  ]
+}

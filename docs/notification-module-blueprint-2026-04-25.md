@@ -1,0 +1,1480 @@
+# Notification Module Blueprint
+
+Date: 2026-04-25
+Framework update: 2026-05-03
+
+Scope:
+- Final implementation blueprint for universal in-app notification framework
+- Phase 1 delivery remains the topbar notification inbox
+- The design must also support admin/system announcements, event-based module notifications, workflow/task notifications, reminders, and future escalation/scheduler flows
+- Workspace only: `/var/www/app\iqs-framework`
+- Identity standard locked to `tbl_m_user.f_loginID`
+- Target users include `STAF`, `PELAJAR`, and `UMUM`
+
+Identity baseline:
+- Primary recipient identity: `tbl_m_user.f_loginID`
+- Recipient category: `tbl_m_user.f_categoryUser`
+- Group targeting context: active session group from `$_SESSION['group_active_id']`, fallback `tbl_m_user.f_groupID`
+- Optional metadata only: `f_userID`, `f_stafID`, `f_nopekerja`
+
+Repo alignment references:
+- Dummy topbar notification dropdown: [topbar.php](/var/www/app/iqs-framework/public/includes/topbar.php:265)
+- AJAX JSON + CSRF pattern: [role-switch.php](/var/www/app/iqs-framework/public/ajax/role-switch.php:1)
+- Central audit writer: [AuditLogger.php](/var/www/app/iqs-framework/public/classes/AuditLogger.php:5)
+- Dashboard announcement payload exists but is not a notification source of truth: [dashboard.php](/var/www/app/iqs-framework/public/pages/dashboard.php:97)
+- Developer integration standard: [notification-developer-standard-2026-05-04.md](/var/www/app/iqs-framework/docs/notification-developer-standard-2026-05-04.md)
+- Developer examples: [notification-developer-examples-2026-05-03.md](/var/www/app/iqs-framework/docs/notification-developer-examples-2026-05-03.md)
+
+## Locked Decisions
+
+1. Notification recipient identity is `f_loginID`, not `f_userID`.
+2. Phase 1 audience targeting must support these values:
+   - `ALL`
+   - `LOGIN_ID`
+   - `GROUP_ID`
+   - `CATEGORY_USER`
+3. Framework-ready audience targeting must also support these values:
+   - `ROLE_ID`
+   - `DEPARTMENT_ID`
+   - `PERMISSION`
+   - `RESOLVED_LOGIN_ID`
+4. Read state is stored per `f_notificationID + f_loginID`.
+5. Action/task state is stored per `f_notificationID + f_loginID` when `f_requiresAction = 1`.
+6. Topbar dropdown is a live inbox, not static content.
+7. `Clear All` in current dummy UI is replaced by `Mark All Read`.
+8. Audit log and notification are separate domains. Audit can feed notification later, but notification is not a direct projection of audit rows.
+9. Notification is not the workflow engine. Workflow modules decide the next actor and business state; notification publishes, delivers, reads, and tracks action state.
+10. Workflow notifications should prefer resolved recipients (`RESOLVED_LOGIN_ID` / `LOGIN_ID`) at publish time so historical notifications do not change when user roles or groups change later.
+
+## Implementation Goals
+
+Phase 1 goals:
+- show unread badge in topbar bell
+- fetch latest topbar notifications from DB
+- mark a notification as read
+- mark all visible notifications as read
+- provide `View All` page
+- support `ALL`, `LOGIN_ID`, `GROUP_ID`, and `CATEGORY_USER`
+- support multilingual title/body fallback
+- support active windows using start and expiry timestamps
+
+Phase 1 non-goals:
+- websocket or push notification
+- email digest
+- converting all audit events into notifications
+- advanced admin composer UI
+- snooze, pin, archive, or rule engine
+
+Framework goals:
+- provide one notification standard that can be reused by all generated/custom modules
+- support admin-published announcements and reminders
+- support event-based notifications from application modules
+- support workflow/task notification patterns for simple and multi-step approval flows
+- support source tracking with `f_sourceType`, `f_sourceID`, and `f_eventCode`
+- support dedupe/idempotency so repeated events do not spam users
+- support action-required notification state independently from read/unread state
+- support due dates for reminders, SLA, and future escalation
+- keep delivery channel future-proof for in-app first, email/SMS/push later
+
+Framework non-goals for first delivery:
+- full workflow engine
+- full admin composer UI
+- cron scheduler implementation
+- escalation engine implementation
+- user notification preferences UI
+
+## Framework Coverage Model
+
+The notification module must cover two broad publishing sources through the same storage, inbox, topbar, and read-state model.
+
+1. Admin/system published notifications:
+   - system maintenance announcement
+   - password update reminder
+   - profile completion reminder
+   - policy update notice
+   - security alert
+   - message to all users, a user category, group, role, department, permission holder, or selected login IDs
+
+2. Event-based module notifications:
+   - application submitted
+   - application pending officer review
+   - application pending head of department approval
+   - application approved/rejected
+   - profile detail updated
+   - task assigned
+   - document expiring soon
+   - module-specific alert generated by custom project code
+
+Both sources must produce records in `tbl_notification`, target rows in `tbl_notification_audience`, and per-user state in `tbl_notification_user_state`.
+
+## Notification vs Task
+
+Not every notification requires action.
+
+Notification-only examples:
+- system maintenance notice
+- announcement to all users
+- informational profile update notice
+
+Task/action examples:
+- approve an application
+- review a pending request
+- update password
+- complete missing profile fields
+
+Rules:
+- `f_requiresAction = 0` means the notification is informational.
+- `f_requiresAction = 1` means the notification represents an action/task.
+- For action-required notifications, per-user `f_actionStatus` tracks `pending`, `completed`, `cancelled`, or `expired`.
+- Read state and action state are separate. A user can read a task notification but still have a pending action.
+
+## Workflow Flow Coverage
+
+The notification framework must support both simple and complex approval flows.
+
+Simple flow example:
+- Applicant submits request
+- Approver receives notification
+- Approver approves/rejects
+- Applicant receives final notification
+
+Complex flow example:
+- Applicant submits request
+- Officer review
+- Head of department approval
+- Finance approval
+- Director approval
+- Final applicant notification
+
+Rules:
+- Workflow modules own business rules and next-step resolution.
+- Notification receives the resolved event payload and recipients.
+- Each workflow event should publish a notification with:
+  - `f_eventCode`
+  - `f_sourceType`
+  - `f_sourceID`
+  - `f_requiresAction` when action is required
+  - `f_actionURL`
+  - `f_dedupeKey`
+  - one or more resolved recipient targets
+- When the source record changes state, stale action notifications must be completed, cancelled, expired, or superseded by the workflow module using notification APIs.
+
+Common workflow patterns to support:
+- direct approval
+- multi-step serial approval
+- parallel approval
+- approval by role
+- approval by department
+- delegated/acting approver
+- escalation after due date
+- cancellation when another actor already completed the source action
+
+## Universal Publishing Contract
+
+All modules should publish notifications through a single service/API. Programmers must not write notification SQL directly.
+
+Required publish payload fields:
+- `event_code`
+- `type`
+- `category`
+- `severity`
+- `priority`
+- `title_ms`
+- `body_ms`
+- `audience`
+
+Strongly recommended payload fields:
+- `module_code`
+- `source_type`
+- `source_id`
+- `action_url`
+- `action_label_ms`
+- `requires_action`
+- `due_at`
+- `dedupe_key`
+- `created_by_type`
+- `created_by_login_id`
+
+Example admin reminder:
+
+```php
+NotificationPublisher::publish([
+    'event_code' => 'password.update.reminder',
+    'type' => 'reminder',
+    'category' => 'security',
+    'severity' => 'warning',
+    'priority' => 'high',
+    'title_ms' => 'Kemaskini Kata Laluan',
+    'title_en' => 'Update Password',
+    'body_ms' => 'Sila kemaskini kata laluan anda untuk keselamatan akaun.',
+    'body_en' => 'Please update your password for account security.',
+    'action_url' => 'pages/profile.php?tab=security',
+    'action_label_ms' => 'Kemaskini Sekarang',
+    'action_label_en' => 'Update Now',
+    'requires_action' => true,
+    'starts_at' => '2026-05-03 00:00:00',
+    'expires_at' => '2026-05-31 23:59:59',
+    'dedupe_key' => 'password.update.reminder.2026-05',
+    'audience' => [
+        ['type' => 'ALL', 'value' => null],
+    ],
+]);
+```
+
+Example workflow notification:
+
+```php
+NotificationPublisher::publish([
+    'event_code' => 'application.pending_hod_approval',
+    'type' => 'workflow',
+    'category' => 'application',
+    'severity' => 'info',
+    'priority' => 'normal',
+    'module_code' => 'application',
+    'source_type' => 'application',
+    'source_id' => $applicationId,
+    'title_ms' => 'Permohonan Memerlukan Pengesahan',
+    'body_ms' => 'Satu permohonan sedang menunggu pengesahan Ketua Jabatan.',
+    'action_url' => 'pages/application-review.php?id=' . $applicationId,
+    'requires_action' => true,
+    'due_at' => $dueAt,
+    'dedupe_key' => 'application.pending_hod_approval.' . $applicationId,
+    'audience' => [
+        ['type' => 'RESOLVED_LOGIN_ID', 'value' => $hodLoginId],
+    ],
+]);
+```
+
+## Dedupe and Stale Notification Rules
+
+Dedupe rules:
+- `f_dedupeKey` should be supplied for repeatable events, reminders, and workflow tasks.
+- If an active notification with the same `f_dedupeKey` exists, the publisher must choose one behavior:
+  - `skip`
+  - `update`
+  - `republish`
+- Default behavior should be `skip`.
+
+Stale notification rules:
+- Notification visibility is not authorization.
+- Target pages must re-check permission.
+- Workflow modules must complete or cancel old pending action notifications when the source record has moved forward.
+- Expiry is not the same as completion.
+- A task can be `completed` before `f_expiresAt`.
+- A reminder can expire without completion.
+
+Recommended service methods:
+
+```php
+NotificationService::completeBySource(string $sourceType, string $sourceId, ?string $eventCode = null): int;
+NotificationService::cancelBySource(string $sourceType, string $sourceId, ?string $eventCode = null): int;
+NotificationService::expireBySource(string $sourceType, string $sourceId, ?string $eventCode = null): int;
+```
+
+## Audience Resolver
+
+Audience rows support raw targets, but publishing code may use resolver helpers.
+
+Required audience target types:
+- `ALL`
+- `LOGIN_ID`
+- `GROUP_ID`
+- `CATEGORY_USER`
+- `ROLE_ID`
+- `DEPARTMENT_ID`
+- `PERMISSION`
+- `RESOLVED_LOGIN_ID`
+
+Resolver responsibilities:
+- convert roles/departments/permissions into concrete login IDs when appropriate
+- include delegated/acting approvers when used by a workflow module
+- allow modules to pass already-resolved login IDs
+- prevent invalid or empty recipient rows
+- keep `f_loginID` as the final recipient identity
+
+Best practice:
+- Announcements may use broad dynamic targets such as `ALL`, `CATEGORY_USER`, or `GROUP_ID`.
+- Workflow tasks should use `RESOLVED_LOGIN_ID` / `LOGIN_ID` so the recipient set is stable for the event.
+
+## Event Template Registry
+
+Framework should support template-driven notifications later so programmer output stays consistent.
+
+Template concepts:
+- `event_code`
+- default MS/EN title
+- default MS/EN body
+- default type/category/severity/priority
+- supported placeholders
+
+Example template:
+
+```php
+'application.pending_approval' => [
+    'type' => 'workflow',
+    'category' => 'application',
+    'severity' => 'info',
+    'priority' => 'normal',
+    'title_ms' => 'Permohonan Memerlukan Tindakan',
+    'title_en' => 'Application Requires Action',
+    'body_ms' => 'Permohonan {ref_no} sedang menunggu tindakan anda.',
+    'body_en' => 'Application {ref_no} is waiting for your action.',
+]
+```
+
+Placeholder rules:
+- topbar output must be escaped plain text
+- template variables must be sanitized
+- rich HTML body is not allowed in topbar
+- future admin composer may allow restricted trusted HTML for full notification page only
+
+## Priority, Severity, and Type
+
+Recommended notification type values:
+- `announcement`
+- `event`
+- `workflow`
+- `task`
+- `reminder`
+- `alert`
+
+Recommended severity values:
+- `info`
+- `success`
+- `warning`
+- `danger`
+
+Recommended priority values:
+- `low`
+- `normal`
+- `high`
+- `urgent`
+
+Do not confuse severity and priority:
+- severity describes nature/status
+- priority describes urgency
+
+Example:
+- password update reminder: severity `warning`, priority `high`
+- approval pending: severity `info`, priority `normal`
+- security alert: severity `danger`, priority `urgent`
+
+## Framework Phase Roadmap
+
+Phase 1: In-app notification inbox/topbar
+- SQL migration
+- service query
+- topbar shell
+- AJAX list/read/read-all
+- `View All` page
+- language keys
+
+Phase 2: Universal publisher and event framework
+- `NotificationPublisher`
+- audience resolver
+- event code standard
+- dedupe behavior
+- source completion/cancellation helpers
+- module developer examples
+
+Phase 3: Workflow/task notification support
+- `requires_action`
+- per-user action status
+- due date
+- complete/cancel/expire by source
+- workflow integration convention
+
+Phase 4: Admin composer, scheduler, and escalation
+- admin UI to publish general notifications
+- scheduler/cron reminders
+- escalation rules
+- user preferences
+- future channels such as email, SMS, WhatsApp/Telegram, or push
+
+## File List
+
+New files to add:
+- [NotificationService.php](/var/www/app/iqs-framework/public/classes/NotificationService.php)
+- [NotificationPublisher.php](/var/www/app/iqs-framework/public/classes/NotificationPublisher.php)
+- [NotificationAudienceResolver.php](/var/www/app/iqs-framework/public/classes/NotificationAudienceResolver.php)
+- [NotificationWorkflowService.php](/var/www/app/iqs-framework/public/classes/NotificationWorkflowService.php)
+- [notification-list.php](/var/www/app/iqs-framework/public/ajax/notification-list.php)
+- [notification-read.php](/var/www/app/iqs-framework/public/ajax/notification-read.php)
+- [notification-read-all.php](/var/www/app/iqs-framework/public/ajax/notification-read-all.php)
+- [notification-action.php](/var/www/app/iqs-framework/public/ajax/notification-action.php)
+- [notifications.php](/var/www/app/iqs-framework/public/pages/notifications.php)
+- [topbar-notifications.js](/var/www/app/iqs-framework/public/assets/js/topbar-notifications.js)
+
+Existing files to update:
+- [topbar.php](/var/www/app/iqs-framework/public/includes/topbar.php)
+- `public/lang/ms.php`
+- `public/lang/en.php`
+- `CHANGELOG.md`
+
+Optional future files, not required for phase 1:
+- `public/pages/notification-center.php`
+- `public/ajax/notification-save.php`
+- `public/ajax/notification-dismiss.php`
+- `public/ajax/notification-publish.php`
+- `public/classes/NotificationTemplateRegistry.php`
+- `public/classes/NotificationScheduler.php`
+- `public/classes/NotificationEscalationService.php`
+
+## SQL Migration Final
+
+Recommended migration file:
+- `docs/notification-module-migration-2026-04-25.sql`
+
+Final SQL for Phase 1-3 core schema:
+
+These three tables are required before Phase 1 starts and are also sufficient for Phase 2 and Phase 3 core framework behavior:
+- `tbl_notification`
+- `tbl_notification_audience`
+- `tbl_notification_user_state`
+
+```sql
+CREATE TABLE IF NOT EXISTS `tbl_notification` (
+  `f_notificationID` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `f_code` VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `f_eventCode` VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `f_templateCode` VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `f_moduleCode` VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `f_type` VARCHAR(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'announcement',
+  `f_category` VARCHAR(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'system',
+  `f_severity` VARCHAR(16) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'info',
+  `f_priority` VARCHAR(16) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'normal',
+  `f_title_ms` VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `f_title_en` VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `f_body_ms` TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  `f_body_en` TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  `f_actionURL` VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `f_actionLabel_ms` VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `f_actionLabel_en` VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `f_icon` VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `f_sourceType` VARCHAR(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `f_sourceID` VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `f_requiresAction` TINYINT(1) NOT NULL DEFAULT '0',
+  `f_dueAt` DATETIME DEFAULT NULL,
+  `f_dedupeKey` VARCHAR(190) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `f_isBroadcast` TINYINT(1) NOT NULL DEFAULT '0',
+  `f_status` TINYINT(1) NOT NULL DEFAULT '1',
+  `f_startsAt` DATETIME DEFAULT NULL,
+  `f_expiresAt` DATETIME DEFAULT NULL,
+  `f_createdByType` VARCHAR(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'system',
+  `f_createdByLoginID` VARCHAR(150) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `f_insertBy` VARCHAR(150) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `f_insertdt` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  `f_updatedt` DATETIME DEFAULT NULL,
+  PRIMARY KEY (`f_notificationID`),
+  UNIQUE KEY `uq_notification_dedupe` (`f_dedupeKey`),
+  KEY `idx_notification_status_window` (`f_status`, `f_startsAt`, `f_expiresAt`),
+  KEY `idx_notification_type` (`f_type`),
+  KEY `idx_notification_category` (`f_category`),
+  KEY `idx_notification_priority_due` (`f_priority`, `f_dueAt`),
+  KEY `idx_notification_event` (`f_eventCode`),
+  KEY `idx_notification_module` (`f_moduleCode`),
+  KEY `idx_notification_source` (`f_sourceType`, `f_sourceID`),
+  KEY `idx_notification_source_event` (`f_sourceType`, `f_sourceID`, `f_eventCode`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `tbl_notification_audience` (
+  `f_audienceID` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `f_notificationID` BIGINT UNSIGNED NOT NULL,
+  `f_targetType` ENUM('ALL','LOGIN_ID','GROUP_ID','CATEGORY_USER','ROLE_ID','DEPARTMENT_ID','PERMISSION','RESOLVED_LOGIN_ID') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `f_targetValue` VARCHAR(150) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `f_resolvedLoginID` VARCHAR(150) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `f_insertdt` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`f_audienceID`),
+  KEY `idx_notification_audience_lookup` (`f_targetType`, `f_targetValue`),
+  KEY `idx_notification_audience_resolved` (`f_resolvedLoginID`),
+  KEY `idx_notification_audience_notification` (`f_notificationID`),
+  CONSTRAINT `fk_notification_audience_notification`
+    FOREIGN KEY (`f_notificationID`) REFERENCES `tbl_notification` (`f_notificationID`)
+    ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `tbl_notification_user_state` (
+  `f_stateID` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `f_notificationID` BIGINT UNSIGNED NOT NULL,
+  `f_loginID` VARCHAR(150) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `f_categoryUser` ENUM('STAF','PELAJAR','UMUM') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `f_isRead` TINYINT(1) NOT NULL DEFAULT '0',
+  `f_readAt` DATETIME DEFAULT NULL,
+  `f_isDismissed` TINYINT(1) NOT NULL DEFAULT '0',
+  `f_dismissedAt` DATETIME DEFAULT NULL,
+  `f_clickedAt` DATETIME DEFAULT NULL,
+  `f_actionStatus` ENUM('none','pending','completed','cancelled','expired') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'none',
+  `f_actedAt` DATETIME DEFAULT NULL,
+  `f_completedAt` DATETIME DEFAULT NULL,
+  `f_cancelledAt` DATETIME DEFAULT NULL,
+  `f_insertdt` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  `f_updatedt` DATETIME DEFAULT NULL,
+  PRIMARY KEY (`f_stateID`),
+  UNIQUE KEY `uq_notification_login` (`f_notificationID`, `f_loginID`),
+  KEY `idx_notification_login_unread` (`f_loginID`, `f_isRead`, `f_isDismissed`),
+  KEY `idx_notification_login_action` (`f_loginID`, `f_actionStatus`),
+  CONSTRAINT `fk_notification_user_state_notification`
+    FOREIGN KEY (`f_notificationID`) REFERENCES `tbl_notification` (`f_notificationID`)
+    ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+```
+
+## Phase 4 Optional SQL Reference
+
+These tables are not required for Phase 1-3. They are documented here so Phase 4 features do not get redesigned from scratch later.
+
+Use these only when implementing:
+- admin composer with reusable templates
+- user/admin notification preferences
+- multi-channel delivery tracking
+- scheduled/recurring reminders
+- escalation rules for overdue workflow tasks
+
+### `tbl_notification_template`
+
+Purpose:
+- registry of reusable notification templates by `f_eventCode`
+- keeps module-generated notification wording consistent
+- supports placeholder documentation for developer/admin usage
+
+```sql
+CREATE TABLE IF NOT EXISTS `tbl_notification_template` (
+  `f_templateID` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `f_templateCode` VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `f_eventCode` VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `f_moduleCode` VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `f_type` VARCHAR(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'event',
+  `f_category` VARCHAR(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'system',
+  `f_severity` VARCHAR(16) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'info',
+  `f_priority` VARCHAR(16) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'normal',
+  `f_title_ms` VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `f_title_en` VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `f_body_ms` TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  `f_body_en` TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  `f_actionLabel_ms` VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `f_actionLabel_en` VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `f_icon` VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `f_requiresAction` TINYINT(1) NOT NULL DEFAULT '0',
+  `f_placeholders` JSON DEFAULT NULL,
+  `f_status` TINYINT(1) NOT NULL DEFAULT '1',
+  `f_insertBy` VARCHAR(150) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `f_insertdt` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  `f_updatedt` DATETIME DEFAULT NULL,
+  PRIMARY KEY (`f_templateID`),
+  UNIQUE KEY `uq_notification_template_code` (`f_templateCode`),
+  KEY `idx_notification_template_event` (`f_eventCode`),
+  KEY `idx_notification_template_module` (`f_moduleCode`),
+  KEY `idx_notification_template_status` (`f_status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+```
+
+### `tbl_notification_preference`
+
+Purpose:
+- future user/admin preference layer
+- supports muting non-critical categories or future channel settings
+- critical/security notifications should be allowed to bypass optional mute rules
+
+```sql
+CREATE TABLE IF NOT EXISTS `tbl_notification_preference` (
+  `f_preferenceID` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `f_loginID` VARCHAR(150) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `f_channel` VARCHAR(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'in_app',
+  `f_eventCode` VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `f_category` VARCHAR(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `f_moduleCode` VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `f_isMuted` TINYINT(1) NOT NULL DEFAULT '0',
+  `f_isEnabled` TINYINT(1) NOT NULL DEFAULT '1',
+  `f_insertdt` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  `f_updatedt` DATETIME DEFAULT NULL,
+  PRIMARY KEY (`f_preferenceID`),
+  UNIQUE KEY `uq_notification_preference_scope` (`f_loginID`, `f_channel`, `f_eventCode`, `f_category`, `f_moduleCode`),
+  KEY `idx_notification_preference_login` (`f_loginID`),
+  KEY `idx_notification_preference_scope_lookup` (`f_channel`, `f_eventCode`, `f_category`, `f_moduleCode`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+```
+
+### `tbl_notification_delivery`
+
+Purpose:
+- future multi-channel delivery tracking
+- supports email, SMS, WhatsApp/Telegram, push, or other channel attempts
+- in-app topbar does not require delivery rows in Phase 1
+
+```sql
+CREATE TABLE IF NOT EXISTS `tbl_notification_delivery` (
+  `f_deliveryID` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `f_notificationID` BIGINT UNSIGNED NOT NULL,
+  `f_loginID` VARCHAR(150) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `f_channel` VARCHAR(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `f_destination` VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `f_status` ENUM('pending','sent','failed','skipped','cancelled') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'pending',
+  `f_attempts` INT UNSIGNED NOT NULL DEFAULT '0',
+  `f_lastAttemptAt` DATETIME DEFAULT NULL,
+  `f_sentAt` DATETIME DEFAULT NULL,
+  `f_errorMessage` TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  `f_insertdt` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  `f_updatedt` DATETIME DEFAULT NULL,
+  PRIMARY KEY (`f_deliveryID`),
+  KEY `idx_notification_delivery_notification` (`f_notificationID`),
+  KEY `idx_notification_delivery_login` (`f_loginID`),
+  KEY `idx_notification_delivery_status` (`f_channel`, `f_status`),
+  CONSTRAINT `fk_notification_delivery_notification`
+    FOREIGN KEY (`f_notificationID`) REFERENCES `tbl_notification` (`f_notificationID`)
+    ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+```
+
+### `tbl_notification_schedule`
+
+Purpose:
+- future scheduled and recurring notification/reminder runner
+- supports one-time scheduled admin notifications and recurring reminders
+
+```sql
+CREATE TABLE IF NOT EXISTS `tbl_notification_schedule` (
+  `f_scheduleID` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `f_scheduleCode` VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `f_eventCode` VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `f_templateCode` VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `f_moduleCode` VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `f_payload` JSON DEFAULT NULL,
+  `f_audience` JSON DEFAULT NULL,
+  `f_recurrenceRule` VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `f_nextRunAt` DATETIME DEFAULT NULL,
+  `f_lastRunAt` DATETIME DEFAULT NULL,
+  `f_lastStatus` VARCHAR(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `f_lastMessage` TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  `f_status` TINYINT(1) NOT NULL DEFAULT '1',
+  `f_insertBy` VARCHAR(150) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `f_insertdt` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  `f_updatedt` DATETIME DEFAULT NULL,
+  PRIMARY KEY (`f_scheduleID`),
+  UNIQUE KEY `uq_notification_schedule_code` (`f_scheduleCode`),
+  KEY `idx_notification_schedule_next` (`f_status`, `f_nextRunAt`),
+  KEY `idx_notification_schedule_event` (`f_eventCode`),
+  KEY `idx_notification_schedule_module` (`f_moduleCode`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+```
+
+### `tbl_notification_escalation_rule`
+
+Purpose:
+- future workflow/task escalation configuration
+- supports overdue task escalation to supervisor, role, group, department, or resolved login IDs
+
+```sql
+CREATE TABLE IF NOT EXISTS `tbl_notification_escalation_rule` (
+  `f_ruleID` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `f_ruleCode` VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `f_sourceType` VARCHAR(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `f_eventCode` VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `f_moduleCode` VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `f_afterMinutes` INT UNSIGNED NOT NULL DEFAULT '0',
+  `f_escalateTargetType` ENUM('LOGIN_ID','GROUP_ID','CATEGORY_USER','ROLE_ID','DEPARTMENT_ID','PERMISSION','RESOLVED_LOGIN_ID') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `f_escalateTargetValue` VARCHAR(150) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `f_templateCode` VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `f_priority` VARCHAR(16) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'high',
+  `f_status` TINYINT(1) NOT NULL DEFAULT '1',
+  `f_insertBy` VARCHAR(150) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `f_insertdt` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  `f_updatedt` DATETIME DEFAULT NULL,
+  PRIMARY KEY (`f_ruleID`),
+  UNIQUE KEY `uq_notification_escalation_rule_code` (`f_ruleCode`),
+  KEY `idx_notification_escalation_lookup` (`f_status`, `f_sourceType`, `f_eventCode`, `f_moduleCode`),
+  KEY `idx_notification_escalation_target` (`f_escalateTargetType`, `f_escalateTargetValue`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+```
+
+Seed examples for validation:
+
+```sql
+INSERT INTO `tbl_notification`
+(`f_eventCode`, `f_moduleCode`, `f_type`, `f_category`, `f_severity`, `f_priority`, `f_title_ms`, `f_title_en`, `f_body_ms`, `f_body_en`, `f_actionURL`, `f_icon`, `f_isBroadcast`, `f_status`, `f_createdByType`, `f_insertBy`)
+VALUES
+('system.announcement', 'core', 'announcement', 'system', 'info', 'normal', 'Pengumuman Sistem', 'System Announcement', 'Selamat datang ke modul notifikasi.', 'Welcome to the notification module.', 'pages/notifications.php', 'ri-notification-3-line', 1, 1, 'system', 'system');
+
+INSERT INTO `tbl_notification_audience`
+(`f_notificationID`, `f_targetType`, `f_targetValue`)
+VALUES
+(1, 'ALL', NULL);
+```
+
+## Data Rules
+
+`tbl_notification`:
+- stores canonical notification content
+- `f_eventCode` identifies the business/system event that produced the notification
+- `f_templateCode` optionally links notification content to a template registry
+- `f_moduleCode` identifies the producing module
+- `f_priority` represents urgency; `f_severity` represents nature/status
+- `f_requiresAction = 1` marks the notification as a task/action item
+- `f_dueAt` supports reminder, SLA, and future escalation logic
+- `f_dedupeKey` prevents duplicate notification spam for repeatable events
+- `f_isBroadcast = 1` is metadata only and does not replace audience rows
+- visibility still depends on `tbl_notification_audience`
+
+`tbl_notification_audience`:
+- `ALL`: `f_targetValue = NULL`
+- `LOGIN_ID`: exact value of `tbl_m_user.f_loginID`
+- `GROUP_ID`: string value of active group ID
+- `CATEGORY_USER`: one of `STAF`, `PELAJAR`, `UMUM`
+- `ROLE_ID`: project/system role identifier
+- `DEPARTMENT_ID`: department/faculty/unit identifier
+- `PERMISSION`: permission/code that can be resolved to users by the framework
+- `RESOLVED_LOGIN_ID`: resolved final recipient login ID for stable workflow delivery
+- `f_resolvedLoginID` may store concrete resolved recipient identity for resolver/debug purposes
+
+`tbl_notification_user_state`:
+- one row per `f_notificationID + f_loginID`
+- no row means notification is still unread and not dismissed
+- `f_categoryUser` is snapshot/debug context, not identity key
+- `f_actionStatus` tracks task state when `f_requiresAction = 1`
+- `f_actionStatus = none` for informational notifications
+- `f_actionStatus = pending` means user action is still required
+- `f_actionStatus = completed`, `cancelled`, or `expired` means no action is currently required from that user
+
+## Visibility Resolution Rules
+
+A notification is visible only if all of these are true:
+- `n.f_status = 1`
+- `n.f_startsAt IS NULL OR n.f_startsAt <= NOW()`
+- `n.f_expiresAt IS NULL OR n.f_expiresAt >= NOW()`
+- user state is not dismissed
+- at least one audience row matches current actor
+
+Audience match is true when one of these matches:
+- `ALL`
+- `LOGIN_ID = current f_loginID`
+- `GROUP_ID = current active group ID`
+- `CATEGORY_USER = current f_categoryUser`
+
+Identity resolution order:
+1. read `$_SESSION['f_loginID']`
+2. load `tbl_m_user` by `f_loginID`
+3. derive:
+   - `f_loginID`
+   - `f_categoryUser`
+   - `$_SESSION['group_active_id']` if present
+   - fallback `tbl_m_user.f_groupID`
+   - optional `f_userID`, `f_stafID`, `f_nopekerja`
+
+## NotificationService Class Skeleton
+
+File:
+- [NotificationService.php](/var/www/app/iqs-framework/public/classes/NotificationService.php)
+
+Recommended skeleton:
+
+```php
+<?php
+declare(strict_types=1);
+
+require_once __DIR__ . '/Database.php';
+
+final class NotificationService
+{
+    public function __construct(private PDO $pdo) {}
+
+    public function resolveCurrentActor(): array
+    {
+        $loginId = trim((string)($_SESSION['f_loginID'] ?? ''));
+        if ($loginId === '') {
+            throw new RuntimeException('Missing session login ID.');
+        }
+
+        $stmt = $this->pdo->prepare("
+            SELECT f_userID, f_loginID, f_stafID, f_nopekerja, f_categoryUser, f_groupID
+            FROM tbl_m_user
+            WHERE f_loginID = :loginID
+            LIMIT 1
+        ");
+        $stmt->execute([':loginID' => $loginId]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
+        if (!$row) {
+            throw new RuntimeException('Authenticated user record not found.');
+        }
+
+        $activeGroupId = (int)($_SESSION['group_active_id'] ?? 0);
+        if ($activeGroupId <= 0) {
+            $activeGroupId = (int)($row['f_groupID'] ?? 0);
+        }
+
+        return [
+            'user_id' => (int)($row['f_userID'] ?? 0),
+            'login_id' => (string)($row['f_loginID'] ?? ''),
+            'staf_id' => (string)($row['f_stafID'] ?? ''),
+            'nopekerja' => (string)($row['f_nopekerja'] ?? ''),
+            'category_user' => (string)($row['f_categoryUser'] ?? ''),
+            'group_id' => $activeGroupId,
+        ];
+    }
+
+    public function getTopbarPayload(string $lang = 'ms', int $limit = 10): array
+    {
+        $actor = $this->resolveCurrentActor();
+
+        return [
+            'unread' => $this->countUnread($actor, $lang),
+            'items' => $this->listNotifications($actor, [
+                'lang' => $lang,
+                'limit' => $limit,
+                'mode' => 'topbar',
+            ]),
+        ];
+    }
+
+    public function countUnread(array $actor, string $lang = 'ms'): int
+    {
+        // Count visible notifications with no read row or unread state.
+        return 0;
+    }
+
+    public function listNotifications(array $actor, array $options = []): array
+    {
+        // Resolve visible notifications for topbar or page list mode.
+        return [];
+    }
+
+    public function markAsRead(int $notificationId, array $actor): bool
+    {
+        // Upsert tbl_notification_user_state by f_notificationID + f_loginID.
+        return true;
+    }
+
+    public function markAllAsRead(array $actor): int
+    {
+        // Bulk mark all visible notifications as read for current f_loginID.
+        return 0;
+    }
+
+    public function markActionCompleted(int $notificationId, array $actor): bool
+    {
+        // Set per-user f_actionStatus = completed when a task/action is done.
+        return true;
+    }
+
+    public function completeBySource(string $sourceType, string $sourceId, ?string $eventCode = null): int
+    {
+        // Complete pending action notifications related to a source record.
+        return 0;
+    }
+
+    public function cancelBySource(string $sourceType, string $sourceId, ?string $eventCode = null): int
+    {
+        // Cancel stale action notifications related to a source record.
+        return 0;
+    }
+
+    public function expireBySource(string $sourceType, string $sourceId, ?string $eventCode = null): int
+    {
+        // Expire pending action notifications related to a source record.
+        return 0;
+    }
+
+    public function touchClicked(int $notificationId, array $actor): bool
+    {
+        // Optional future usage when item click tracking is required.
+        return true;
+    }
+
+    public function createNotification(array $payload): int
+    {
+        // Future admin/broadcast use.
+        return 0;
+    }
+}
+```
+
+## NotificationPublisher Class Skeleton
+
+File:
+- [NotificationPublisher.php](/var/www/app/iqs-framework/public/classes/NotificationPublisher.php)
+
+Purpose:
+- provide one developer-facing API for admin, system, event, workflow, and reminder notifications
+- validate payload shape
+- resolve audience targets where needed
+- enforce dedupe behavior
+- insert notification and audience rows in one transaction
+
+Recommended skeleton:
+
+```php
+<?php
+declare(strict_types=1);
+
+final class NotificationPublisher
+{
+    public function __construct(
+        private PDO $pdo,
+        private NotificationAudienceResolver $resolver
+    ) {}
+
+    public function publish(array $payload, array $options = []): int
+    {
+        // Validate required fields, sanitize text payload, normalize options.
+        // Apply dedupe behavior: skip, update, or republish.
+        // Insert tbl_notification and tbl_notification_audience in a transaction.
+        return 0;
+    }
+
+    public function publishFromTemplate(string $eventCode, array $variables, array $payload = [], array $options = []): int
+    {
+        // Resolve template by event code, render variables, then publish.
+        return 0;
+    }
+
+    private function validatePayload(array $payload): array
+    {
+        return $payload;
+    }
+
+    private function normalizeAudience(array $audience): array
+    {
+        return $audience;
+    }
+}
+```
+
+## NotificationAudienceResolver Skeleton
+
+File:
+- [NotificationAudienceResolver.php](/var/www/app/iqs-framework/public/classes/NotificationAudienceResolver.php)
+
+Purpose:
+- convert framework audience shortcuts into concrete notification audience rows
+- return stable `RESOLVED_LOGIN_ID` rows for workflow/task notifications when possible
+- support future role, department, permission, delegation, and acting-role lookup
+
+Recommended skeleton:
+
+```php
+<?php
+declare(strict_types=1);
+
+final class NotificationAudienceResolver
+{
+    public function __construct(private PDO $pdo) {}
+
+    public function resolve(array $audience, array $context = []): array
+    {
+        // Return normalized rows:
+        // ['type' => 'LOGIN_ID|GROUP_ID|...|RESOLVED_LOGIN_ID', 'value' => '...', 'resolved_login_id' => null]
+        return [];
+    }
+
+    public function resolveRole(string $roleId, array $context = []): array
+    {
+        return [];
+    }
+
+    public function resolveDepartment(string $departmentId, array $context = []): array
+    {
+        return [];
+    }
+
+    public function resolvePermission(string $permissionCode, array $context = []): array
+    {
+        return [];
+    }
+}
+```
+
+## Core Query Contract
+
+Recommended visibility query shape:
+
+```sql
+SELECT
+  n.f_notificationID,
+  n.f_eventCode,
+  n.f_moduleCode,
+  n.f_type,
+  n.f_category,
+  n.f_severity,
+  n.f_priority,
+  n.f_requiresAction,
+  n.f_dueAt,
+  CASE
+    WHEN :lang = 'en' AND COALESCE(NULLIF(n.f_title_en, ''), '') <> '' THEN n.f_title_en
+    ELSE n.f_title_ms
+  END AS title,
+  CASE
+    WHEN :lang = 'en' AND COALESCE(NULLIF(n.f_body_en, ''), '') <> '' THEN n.f_body_en
+    ELSE n.f_body_ms
+  END AS body,
+  n.f_actionURL,
+  CASE
+    WHEN :lang = 'en' AND COALESCE(NULLIF(n.f_actionLabel_en, ''), '') <> '' THEN n.f_actionLabel_en
+    ELSE n.f_actionLabel_ms
+  END AS action_label,
+  n.f_icon,
+  n.f_sourceType,
+  n.f_sourceID,
+  n.f_insertdt,
+  COALESCE(s.f_isRead, 0) AS is_read,
+  COALESCE(s.f_actionStatus, CASE WHEN n.f_requiresAction = 1 THEN 'pending' ELSE 'none' END) AS action_status
+FROM tbl_notification n
+JOIN tbl_notification_audience a
+  ON a.f_notificationID = n.f_notificationID
+LEFT JOIN tbl_notification_user_state s
+  ON s.f_notificationID = n.f_notificationID
+ AND s.f_loginID = :login_id
+WHERE n.f_status = 1
+  AND (n.f_startsAt IS NULL OR n.f_startsAt <= NOW())
+  AND (n.f_expiresAt IS NULL OR n.f_expiresAt >= NOW())
+  AND COALESCE(s.f_isDismissed, 0) = 0
+  AND (
+    a.f_targetType = 'ALL'
+    OR (a.f_targetType = 'LOGIN_ID' AND a.f_targetValue = :login_id)
+    OR (a.f_targetType = 'RESOLVED_LOGIN_ID' AND a.f_targetValue = :login_id)
+    OR (a.f_resolvedLoginID = :login_id)
+    OR (a.f_targetType = 'GROUP_ID' AND a.f_targetValue = :group_id)
+    OR (a.f_targetType = 'CATEGORY_USER' AND a.f_targetValue = :category_user)
+    OR (a.f_targetType = 'ROLE_ID' AND a.f_targetValue IN (:role_ids))
+    OR (a.f_targetType = 'DEPARTMENT_ID' AND a.f_targetValue = :department_id)
+    OR (a.f_targetType = 'PERMISSION' AND a.f_targetValue IN (:permission_codes))
+  )
+GROUP BY n.f_notificationID
+ORDER BY COALESCE(s.f_isRead, 0) ASC, n.f_insertdt DESC
+LIMIT :limit;
+```
+
+Note:
+- Phase 1 can implement only `ALL`, `LOGIN_ID`, `RESOLVED_LOGIN_ID`, `GROUP_ID`, and `CATEGORY_USER`.
+- `ROLE_ID`, `DEPARTMENT_ID`, and `PERMISSION` require resolver support before use.
+- For portability, dynamic `IN (:role_ids)` and `IN (:permission_codes)` must be expanded with bound placeholders by PHP, not string concatenation.
+
+## AJAX Endpoint Request and Response
+
+All endpoints must follow these repo conventions:
+- `require_once __DIR__ . '/../includes/init.php';`
+- `require_login();`
+- `header('Content-Type: application/json; charset=utf-8');`
+- verify CSRF via `isValidCsrfToken()`
+- use `POST`
+- read JSON body where appropriate
+
+### 1. `notification-list.php`
+
+Purpose:
+- fetch topbar notification payload
+- fetch page list payload later with the same service
+
+Request:
+
+```json
+{
+  "mode": "topbar",
+  "limit": 10
+}
+```
+
+Success response:
+
+```json
+{
+  "error": false,
+  "unread": 3,
+  "items": [
+    {
+      "id": 17,
+      "event_code": "system.announcement",
+      "module_code": "core",
+      "type": "announcement",
+      "category": "system",
+      "severity": "info",
+      "priority": "normal",
+      "title": "Pengumuman Sistem",
+      "body": "Selamat datang ke modul notifikasi.",
+      "action_url": "pages/notifications.php",
+      "action_label": "Buka",
+      "icon": "ri-notification-3-line",
+      "is_read": false,
+      "requires_action": false,
+      "action_status": "none",
+      "due_at": null,
+      "source_type": null,
+      "source_id": null,
+      "created_at": "2026-04-25 15:30:00",
+      "time_ago": "1 min ago"
+    }
+  ]
+}
+```
+
+Error response:
+
+```json
+{
+  "error": true,
+  "message": "Gagal memuatkan notifikasi."
+}
+```
+
+### 2. `notification-read.php`
+
+Purpose:
+- mark one notification as read for current `f_loginID`
+
+Request:
+
+```json
+{
+  "notification_id": 17
+}
+```
+
+Success response:
+
+```json
+{
+  "error": false,
+  "message": "Notification marked as read.",
+  "notification_id": 17
+}
+```
+
+Error response:
+
+```json
+{
+  "error": true,
+  "message": "Notification tidak sah."
+}
+```
+
+### 3. `notification-read-all.php`
+
+Purpose:
+- mark all visible notifications as read for current `f_loginID`
+
+Request:
+
+```json
+{
+  "scope": "topbar"
+}
+```
+
+Success response:
+
+```json
+{
+  "error": false,
+  "updated": 8,
+  "message": "All notifications marked as read."
+}
+```
+
+### 4. `notifications.php`
+
+Purpose:
+- full-page list view
+- initial phase can render server shell and fetch rows via `notification-list.php` using mode `page`
+
+Suggested future request for page mode:
+
+```json
+{
+  "mode": "page",
+  "limit": 25,
+  "page": 1,
+  "filter": "all"
+}
+```
+
+## AJAX Skeleton
+
+Recommended endpoint skeleton for `notification-list.php`:
+
+```php
+<?php
+declare(strict_types=1);
+
+header('Content-Type: application/json; charset=utf-8');
+
+try {
+    require_once __DIR__ . '/../includes/init.php';
+    require_login();
+    require_once __DIR__ . '/../classes/Database.php';
+    require_once __DIR__ . '/../classes/NotificationService.php';
+
+    if (!isValidCsrfToken()) {
+        http_response_code(400);
+        echo json_encode(['error' => true, 'message' => (string)__('userGroup_csrf_invalid')], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
+    $raw = file_get_contents('php://input');
+    $data = json_decode($raw, true);
+    if (!is_array($data)) {
+        $data = [];
+    }
+
+    $limit = max(1, min(25, (int)($data['limit'] ?? 10)));
+    $lang = (string)($_SESSION['lang'] ?? 'ms');
+
+    $service = new NotificationService(Database::getInstance('mysql')->getConnection());
+    $payload = $service->getTopbarPayload($lang, $limit);
+
+    echo json_encode([
+        'error' => false,
+        'unread' => (int)($payload['unread'] ?? 0),
+        'items' => $payload['items'] ?? [],
+    ], JSON_UNESCAPED_UNICODE);
+} catch (Throwable $e) {
+    http_response_code(500);
+    echo json_encode([
+        'error' => true,
+        'message' => 'Gagal memuatkan notifikasi.'
+    ], JSON_UNESCAPED_UNICODE);
+}
+```
+
+## Topbar UI Structure
+
+Existing dummy block in [topbar.php](/var/www/app/iqs-framework/public/includes/topbar.php:265) should be replaced with a render shell:
+
+```html
+<li class="dropdown notification-list" id="topbarNotificationRoot">
+  <a class="nav-link dropdown-toggle arrow-none" data-bs-toggle="dropdown" href="#" role="button" aria-expanded="false" id="topbarNotificationToggle">
+    <i class="ri-notification-3-fill fs-22"></i>
+    <span class="noti-icon-badge d-none" id="topbarNotificationBadge"></span>
+  </a>
+  <div class="dropdown-menu dropdown-menu-end dropdown-menu-animated dropdown-lg py-0" data-bs-auto-close="outside">
+    <div class="p-2 border-dashed border-top-0 d-flex justify-content-between align-items-center">
+      <h6 class="fs-16 fw-medium m-0"><?= h(__('topbar_notification_title') ?: 'Notification') ?></h6>
+      <a href="#" class="text-dark text-decoration-underline d-none" id="topbarNotificationReadAll">
+        <small><?= h(__('topbar_notification_mark_all_read') ?: 'Mark All Read') ?></small>
+      </a>
+    </div>
+    <div style="max-height: 300px;" data-simplebar id="topbarNotificationList">
+      <div class="p-3 text-center text-muted small"><?= h(__('topbar_notification_loading') ?: 'Loading...') ?></div>
+    </div>
+    <a href="<?= h(base_url('pages/notifications.php')) ?>" class="dropdown-item text-center text-primary fw-bold border-top py-2">
+      <?= h(__('topbar_notification_view_all') ?: 'View All') ?>
+    </a>
+  </div>
+</li>
+```
+
+## Pseudo-UI Topbar Render Flow
+
+Topbar notification lifecycle:
+
+1. Page load
+- read `csrfToken` from existing topbar/init context
+- initialize `window.TopbarNotifications`
+- bind dropdown open event
+- do one silent initial fetch to populate badge
+
+2. Initial silent fetch
+- call `POST ajax/notification-list.php`
+- payload: `{ "mode": "topbar", "limit": 10 }`
+- if success:
+  - set unread badge
+  - render latest items
+  - show `Mark All Read` only when unread > 0
+- if fail:
+  - keep bell visible
+  - render soft empty/error state without blocking other topbar actions
+
+3. Dropdown open
+- refresh list if cache older than 20-30 seconds
+- rerender items
+
+4. Click single notification item
+- call `POST ajax/notification-read.php`
+- optimistically mark item read in UI
+- update unread badge
+- if item has `action_url`, redirect there
+
+5. Click `Mark All Read`
+- call `POST ajax/notification-read-all.php`
+- rerender all visible items as read
+- clear unread badge
+
+6. Click `View All`
+- open `pages/notifications.php`
+
+Recommended JS structure:
+
+```js
+window.TopbarNotifications = {
+  state: {
+    loadedAt: 0,
+    unread: 0,
+    items: [],
+    loading: false
+  },
+
+  init() {},
+  bindEvents() {},
+  load(options = {}) {},
+  render(payload) {},
+  renderEmpty(message) {},
+  renderItems(items) {},
+  updateBadge(unread) {},
+  markRead(id) {},
+  markAllRead() {}
+};
+```
+
+## Pseudo-Render Rules
+
+Unread badge:
+- hidden when unread = 0
+- visible when unread > 0
+- for counts > 99, show `99+`
+
+Topbar item render:
+- icon on left
+- title on first line
+- short body on second line
+- relative time on right or below
+- unread items use stronger emphasis
+- read items use muted text
+
+Empty state:
+- text only
+- no fake sample cards
+- suggested string: `Tiada notifikasi untuk masa ini.`
+
+Error state:
+- text only
+- suggested string: `Tidak dapat memuatkan notifikasi.`
+
+## Translation Keys
+
+Add these keys to `ms.php` and `en.php`:
+
+- `topbar_notification_title`
+- `topbar_notification_loading`
+- `topbar_notification_empty`
+- `topbar_notification_load_failed`
+- `topbar_notification_mark_all_read`
+- `topbar_notification_view_all`
+- `topbar_notification_read_success`
+- `topbar_notification_read_failed`
+- `topbar_notification_read_all_success`
+- `topbar_notification_read_all_failed`
+- `notification_page_title`
+- `notification_filter_all`
+- `notification_filter_unread`
+- `notification_filter_read`
+- `notification_filter_action_required`
+- `notification_filter_completed`
+- `notification_action_required`
+- `notification_action_completed`
+- `notification_action_cancelled`
+- `notification_action_expired`
+- `notification_priority_low`
+- `notification_priority_normal`
+- `notification_priority_high`
+- `notification_priority_urgent`
+- `notification_publish_success`
+- `notification_publish_failed`
+- `notification_dedupe_skipped`
+
+## Audit Requirements
+
+These user actions should be auditable:
+- notification item marked as read
+- all visible notifications marked as read
+- future admin-created notification published
+- event-based notification published by module/service
+- action-required notification completed, cancelled, or expired
+- dedupe skip/update decision for important workflow notifications
+- future scheduler/escalation notification generated
+
+Recommended audit payload shape:
+
+```php
+audit_event([
+    'event_type' => 'UPDATE',
+    'severity' => 'INFO',
+    'outcome' => 'SUCCESS',
+    'target_type' => 'notification',
+    'target_id' => (string)$notificationId,
+    'target_label' => 'Notification read state',
+    'message' => 'Notification marked as read',
+    'request_id' => $GLOBALS['__AUDIT_REQUEST_ID'] ?? null,
+    'session_id' => session_id() ?: null,
+    'meta' => [
+        'login_id' => $actor['login_id'] ?? null,
+        'category_user' => $actor['category_user'] ?? null,
+        'group_id' => $actor['group_id'] ?? null,
+    ],
+]);
+```
+
+## Build Order
+
+Implementation order locked for delivery:
+
+1. add SQL migration
+2. add `NotificationService.php`
+3. add `NotificationAudienceResolver.php`
+4. add `NotificationPublisher.php` with minimal admin/system and event publish support
+5. add `notification-list.php`
+6. replace dummy topbar shell in `topbar.php`
+7. add `topbar-notifications.js`
+8. add `notification-read.php`
+9. add `notification-read-all.php`
+10. add `notifications.php`
+11. add language keys
+12. add audit hooks
+13. add developer examples for admin announcement and workflow event publishing
+14. update `CHANGELOG.md`
+
+Implementation order after Phase 1:
+
+1. add source completion/cancellation helpers
+2. add template registry
+3. add admin composer endpoint/page
+4. add scheduler/reminder runner
+5. add escalation support
+6. add user preferences and future delivery channels
+
+## Acceptance Checklist
+
+The feature is considered ready for phase 1 when:
+- topbar no longer renders dummy sample notification
+- unread badge matches DB state for current `f_loginID`
+- current actor only sees notifications matching `ALL`, `LOGIN_ID`, `GROUP_ID`, or `CATEGORY_USER`
+- `STAF`, `PELAJAR`, and `UMUM` identities all resolve correctly via `tbl_m_user.f_loginID`
+- clicking an unread notification marks it read
+- `Mark All Read` updates all visible notifications for current `f_loginID`
+- `View All` opens a real page
+- expired notifications do not display
+- all notification AJAX endpoints enforce login and CSRF
+- admin/system notification can be published through `NotificationPublisher`
+- event-based notification can be published by a module with `event_code`, `source_type`, and `source_id`
+- duplicate notifications can be prevented with `f_dedupeKey`
+- action-required notifications expose `requires_action` and `action_status`
+- target pages still enforce their own authorization after notification click
+
+Framework acceptance checklist:
+- a password update reminder can be published to `ALL` and appears in topbar
+- a workflow notification can be published to one or more `RESOLVED_LOGIN_ID` recipients
+- a multi-step workflow module can complete/cancel stale notifications by source
+- read/unread state remains per `f_loginID`
+- action status remains per `f_loginID`
+- broad announcement targets and resolved workflow targets can coexist
+- notification tables do not require pre-creating user state rows for broadcasts
+- dynamic audience resolver can be extended without changing topbar rendering
+
+## Final Note
+
+This blueprint is locked to the current identity model in `tbl_m_user` and upgraded to a universal event-based notification framework:
+- `f_loginID` is the canonical notification recipient key
+- `f_categoryUser` is the category targeting key
+- `group_active_id` is the runtime group targeting key
+- `f_eventCode` is the event/template key
+- `f_sourceType` and `f_sourceID` connect notification to the producing module record
+- `f_dedupeKey` prevents repeatable event spam
+- `f_requiresAction` and per-user `f_actionStatus` separate informational notifications from task notifications
+
+That keeps the module aligned with the way authentication and multi-category user access already work in this repository while allowing programmers to publish framework-standard notifications for admin announcements, reminders, module events, and complex workflow flows.

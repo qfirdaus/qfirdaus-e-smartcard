@@ -1,0 +1,207 @@
+.content .container-fluid {
+    --et-border: rgba(100, 116, 139, 0.2);
+    --et-shadow: 0 12px 34px rgba(15, 23, 42, 0.07);
+}
+
+.et-hero-card,
+.et-summary-card,
+.et-shell-card,
+.et-filter-card,
+.et-table-card {
+    border: 1px solid var(--et-border) !important;
+    box-shadow: var(--et-shadow) !important;
+}
+
+.et-hero-card {
+    border-radius: 14px !important;
+    margin-bottom: 1.25rem !important;
+    background: linear-gradient(120deg, rgba(var(--bs-primary-rgb), 0.095), transparent 58%), var(--bs-body-bg) !important;
+}
+
+.et-hero-card .card-body {
+    padding: 1.7rem 1.8rem !important;
+}
+
+.et-hero-kicker {
+    color: rgb(var(--bs-primary-rgb, 98, 126, 220)) !important;
+    font-weight: 750;
+    letter-spacing: 0.08em;
+}
+
+.et-hero-copy h5 {
+    font-size: clamp(1.45rem, 2vw, 2rem);
+    letter-spacing: -0.025em;
+}
+
+.et-hero-actions {
+    display: flex !important;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.7rem;
+}
+
+.et-hero-governance {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.65rem;
+    max-width: 300px;
+    padding: 0.75rem 0.85rem;
+    border: 1px solid rgba(var(--bs-primary-rgb), 0.18);
+    border-radius: 10px;
+    background: rgba(var(--bs-primary-rgb), 0.055);
+}
+
+.et-hero-governance > i {
+    color: rgb(var(--bs-primary-rgb, 98, 126, 220));
+    font-size: 1.15rem;
+}
+
+.et-hero-governance strong,
+.et-hero-governance span {
+    display: block;
+}
+
+.et-hero-governance span {
+    margin-top: 0.1rem;
+    color: var(--bs-secondary-color);
+    font-size: 0.73rem;
+}
+
+.et-summary-grid {
+    margin-bottom: 1.25rem !important;
+}
+
+.et-summary-grid > .col-12 {
+    display: flex;
+}
+
+.et-summary-card {
+    width: 100%;
+    min-height: 105px;
+    margin-bottom: 0 !important;
+    border-radius: 12px !important;
+}
+
+.et-summary-card .card-body {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 1.15rem 1.25rem !important;
+}
+
+.et-summary-value {
+    font-size: 1.65rem !important;
+}
+
+.et-content-grid {
+    row-gap: 1.25rem !important;
+}
+
+.et-shell-card,
+.et-filter-card,
+.et-table-card {
+    margin-bottom: 0 !important;
+    overflow: hidden;
+    border-radius: 14px !important;
+}
+
+.et-table-card > .card-body {
+    padding: 1.25rem !important;
+}
+
+#emailTemplateDT_wrapper {
+    padding: 1rem;
+    border: 1px solid var(--et-border);
+    border-radius: 11px;
+}
+
+#emailTemplateDT_wrapper .dt-bottom-row,
+#emailTemplateDT_wrapper .row.mt-3 {
+    margin-top: 0.75rem !important;
+    padding-top: 0.85rem !important;
+    border-top: 1px solid var(--et-border);
+}
+
+.et-modal-shell {
+    border: 1px solid var(--et-border) !important;
+    border-radius: 14px !important;
+    box-shadow: 0 26px 70px rgba(15, 23, 42, 0.22) !important;
+}
+
+.et-modal-header {
+    background-color: rgb(var(--bs-primary-rgb, 98, 126, 220)) !important;
+    background-image: linear-gradient(135deg, rgb(var(--bs-primary-rgb, 98, 126, 220)), #20a58a) !important;
+}
+
+.et-modal-tabs {
+    display: inline-flex !important;
+    width: auto !important;
+    max-width: 100%;
+    overflow-x: auto;
+    border-radius: 11px !important;
+    background: var(--bs-body-bg) !important;
+}
+
+.et-modal-tab {
+    flex: 0 0 auto !important;
+    width: auto !important;
+    border-radius: 8px !important;
+}
+
+.et-modal-tab.is-active {
+    color: #fff !important;
+    background: rgb(var(--bs-primary-rgb, 98, 126, 220)) !important;
+    box-shadow: 0 5px 14px rgba(var(--bs-primary-rgb), 0.22);
+}
+
+.et-form-panel,
+.et-sidebar-panel,
+.et-placeholder-panel,
+.et-preview-list-shell,
+.et-accordion-item {
+    border-radius: 11px !important;
+}
+
+.et-unsaved-indicator {
+    display: none;
+    align-items: center;
+    gap: 0.35rem;
+    color: var(--bs-warning);
+    font-size: 0.78rem;
+    font-weight: 650;
+}
+
+.et-unsaved-indicator.is-visible {
+    display: inline-flex;
+}
+
+@media (max-width: 991.98px) {
+    .et-hero-card .card-body {
+        align-items: stretch !important;
+    }
+
+    .et-hero-actions {
+        justify-content: flex-start;
+    }
+
+    .et-hero-governance {
+        width: 100%;
+        max-width: none;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .et-hero-card .card-body {
+        padding: 1.25rem !important;
+    }
+
+    .et-hero-actions .btn,
+    .et-hero-actions form {
+        width: 100%;
+    }
+
+    .et-hero-actions form .btn {
+        width: 100%;
+    }
+}

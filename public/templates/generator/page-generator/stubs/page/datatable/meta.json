@@ -1,0 +1,10 @@
+{
+  "template_key": "datatable",
+  "template_version": 1,
+  "baseline_reference": "public/pages/senarai-pengguna.php",
+  "notes": [
+    "Ambil structure content daripada tab Akses Staf sahaja.",
+    "Guna DataTable shell standard dengan top controls dan bottom pagination/info.",
+    "Jangan bawa tab lain atau business logic user management."
+  ]
+}
