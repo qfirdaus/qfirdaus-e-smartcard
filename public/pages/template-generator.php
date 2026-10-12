@@ -284,7 +284,7 @@ $archivedCount = count(array_filter($records, static fn(array $record): bool => 
 </div>
 
 <div class="modal fade" id="createTemplateModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-xl tg-create-modal-dialog">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable tg-create-modal-dialog">
         <div class="modal-content tg-modal-shell">
             <div class="modal-header tg-modal-header">
                 <div>
